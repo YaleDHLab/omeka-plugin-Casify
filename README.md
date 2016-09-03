@@ -8,6 +8,7 @@ This repository houses an Omeka plugin that allows users to protect restricted r
 git clone https://github.com/YaleDHLab/omeka-plugin-Casify
 mv omeka-plugin-Casify Casify
 
+# identify your cas endpoint in line 15 of libraries/Casify_ControllerPlugin.php 
 # identify the routes you want to protect in line 24 of libraries/Casify_ControllerPlugin.php 
 ```
 
