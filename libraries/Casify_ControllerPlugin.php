@@ -9,13 +9,26 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
   }
 
   /**
+  * Function that identifies the collections to be kept protected
+  **/
+
+  public function getProtectedCollections() {
+    $protected_collections = array("5");
+    return $protected_collections;
+  }
+
+  /**
   * Read in an item id and return a boolean indicating
   * whether the item belongs to a protected collection
   **/
 
   public function itemIsProtected($item_id) {
-    mysql_connect("localhost", "root", "winter44", true);
-    mysql_select_db("omeka") or die("Could not select the omeka db");
+
+    // fetch the protected collections
+    $protected_collections = $this->getProtectedCollections();
+
+    mysql_connect("localhost", "DB_USER", "DB_USER_PASSWORD", true);
+    mysql_select_db("OMEKA_DB_NAME") or die("Could not select the omeka db");
 
     $item_collection_query = "select collection_id from omeka_items where id = ". $item_id.";";
     $requested_collection_result = mysql_query($item_collection_query);
@@ -33,10 +46,21 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
   public function routeIsProtected($request) {
 
     // identify the protected routes
-    $protected_collections = array("3");
+    $protected_collections = $this->getProtectedCollections();
 
     // identify the route the user has requested 
     $requested_route = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+
+    // check if this is a protected transcribe route
+    if (strpos($requested_route, 'transcribe/') !== false) {
+      $requested_transcribe_path = end( explode('omeka/transcribe/', $requested_route) );
+      $requested_transcribe_array = explode("/", $requested_transcribe_path);
+      $requested_transcribe_item = array_shift(array_slice($requested_transcribe_array, 0, 1));
+
+      if ($this->itemIsProtected($requested_transcribe_item)) {
+        return TRUE;
+      }
+    }
 
     // check if this is a protected item route
     if (strpos($requested_route, 'items/') !== false) {
@@ -84,7 +108,7 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
       **/
 
       if(isset($_COOKIE[$auth_cookie])) {
-        echo "Cookie named '" . $auth_cookie . "' is set!";
+        // Cookie named $auth_cookie is set
       } else {
 
         /** 
