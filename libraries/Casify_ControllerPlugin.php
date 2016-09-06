@@ -8,9 +8,62 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
     $this->_checkRequestedRoute($request);
   }
 
+  /**
+  * Read in an item id and return a boolean indicating
+  * whether the item belongs to a protected collection
+  **/
+
+  public function itemIsProtected($item_id) {
+    mysql_connect("localhost", "root", "winter44", true);
+    mysql_select_db("omeka") or die("Could not select the omeka db");
+
+    $item_collection_query = "select collection_id from omeka_items where id = ". $item_id.";";
+    $requested_collection_result = mysql_query($item_collection_query);
+    $requested_collection = mysql_fetch_assoc($requested_collection_result)["collection_id"];
+    if (in_array($requested_collection, $protected_collections)) {
+      return TRUE;
+    };
+  }
+
+  /**
+  * Read in a route and return a boolean indicating
+  * whether the route is protected
+  **/
+
+  public function routeIsProtected($request) {
+
+    // identify the protected routes
+    $protected_collections = array("3");
+
+    // identify the route the user has requested 
+    $requested_route = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
+
+    // check if this is a protected item route
+    if (strpos($requested_route, 'items/') !== false) {
+      $requested_item_path = end( explode('omeka/items/', $requested_route) );
+      $requested_item_end = end(explode('/', $requested_item_path));
+      $requested_item_array = explode("?", $requested_item_end);
+      $requested_item = array_shift(array_slice($requested_item_array, 0, 1));
+
+      if ($this->itemIsProtected($requested_item)) {
+        return TRUE;
+      }
+    }
+
+    // check if the requested route is a protected collection route
+    if (strpos($requested_route, 'collections/') !== false) {
+      $requested_collection_path = end( explode('omeka/collections/', $requested_route) );
+      $requested_collection_end = end( explode('/', $requested_collection_path));
+      $requested_collection_array = explode("?", $requested_collection_end); 
+      $requested_collection = array_shift(array_slice($requested_collection_array, 0, 1));
+      if (in_array($requested_collection, $protected_collections)) {
+        return TRUE;
+      }
+    }
+  }
+
   protected function _checkRequestedRoute($request)
   {
-
     $requested_route = "http://$_SERVER[HTTP_HOST]$_SERVER[REQUEST_URI]";
     $cas_endpoint = "https://secure.its.yale.edu/";
     $auth_cookie = "omekaUserAuth";
@@ -21,8 +74,9 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
     * store the requested route and authenticate the user
     **/
 
-    if (strpos($requested_route, 'collection') !== false) {
-      setcookie($destination_cookie, $requested_route, time() + (86400 * 30), "/");
+    setcookie($destination_cookie, $requested_route, time() + (86400 * 30), "/");
+
+    if ($this->routeIsProtected($request)) {
 
       /**
       * If the user has an auth cookie in their browser, let them through
