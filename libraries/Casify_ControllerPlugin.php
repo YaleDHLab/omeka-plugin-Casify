@@ -32,9 +32,13 @@ class Casify_ControllerPlugin extends Zend_Controller_Plugin_Abstract
 
     $item_collection_query = "select collection_id from omeka_items where id = ". $item_id.";";
     $requested_collection_result = mysql_query($item_collection_query);
-    $requested_collection = mysql_fetch_assoc($requested_collection_result)["collection_id"];
-    if (in_array($requested_collection, $protected_collections)) {
-      return TRUE;
+
+    if ($requested_collection_result) {
+      $requested_collection = mysql_fetch_assoc($requested_collection_result);
+      $requested_collection_id = $requested_collection["collection_id"];
+      if (in_array($requested_collection_id, $protected_collections)) {
+        return TRUE;
+      };
     };
   }
 
